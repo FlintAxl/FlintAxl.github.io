@@ -114,3 +114,8 @@ footer {
   padding: 20px;
   margin-top: 40px;
 }
+
+.section-desc {
+  margin-bottom: 30px; /* space below the description before the next label */
+  line-height: 1.6;
+}
