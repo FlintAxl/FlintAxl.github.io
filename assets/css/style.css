@@ -1,76 +1,117 @@
-body {
-  font-family: Arial, sans-serif;
+* {
   margin: 0;
-  background: #f4f4f4;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f9f9f9;
   color: #333;
 }
 
 header {
-  background-color: #222;
-  color: #fff;
+  background-color: #0a3d62;
+  color: white;
   text-align: center;
-  padding: 30px 0;
+  padding: 40px 20px;
 }
 
 .profile-img {
   width: 120px;
+  height: 120px;
+  object-fit: cover;
   border-radius: 50%;
-  margin-bottom: 15px;
+  border: 4px solid white;
+  margin-bottom: 10px;
 }
 
 nav {
-  background: #333;
-  padding: 10px 0;
+  background: #1e272e;
 }
 
 nav ul {
-  list-style: none;
   display: flex;
   justify-content: center;
-  margin: 0;
-  padding: 0;
+  list-style: none;
+  position: relative;
 }
 
 nav ul li {
-  margin: 0 15px;
+  position: relative;
 }
 
-nav ul li a {
-  color: #fff;
+nav a {
+  display: block;
+  padding: 15px 20px;
+  color: white;
   text-decoration: none;
+  transition: background 0.3s;
+}
+
+nav a:hover {
+  background-color: #485460;
+}
+
+.dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  background: #2f3640;
+  top: 50px;
+  min-width: 180px;
+}
+
+.dropdown-menu li a {
+  padding: 12px;
+  display: block;
 }
 
 .container {
-  padding: 20px;
   max-width: 900px;
   margin: auto;
+  padding: 20px;
+}
+
+h2 {
+  margin-bottom: 10px;
+  color: #0a3d62;
 }
 
 .skills {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  margin-top: 10px;
 }
 
 .skills li {
-  background: #007acc;
+  background: #0a3d62;
   color: white;
   padding: 10px 15px;
   border-radius: 5px;
 }
 
+.project-category {
+  margin-top: 30px;
+}
+
 .project {
   background: white;
+  border: 1px solid #ccc;
   padding: 15px;
   margin-top: 10px;
-  border-radius: 5px;
-  box-shadow: 0 0 3px rgba(0,0,0,0.1);
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
 footer {
+  background: #0a3d62;
+  color: white;
   text-align: center;
   padding: 20px;
-  background: #222;
-  color: white;
-  margin-top: 20px;
+  margin-top: 40px;
 }

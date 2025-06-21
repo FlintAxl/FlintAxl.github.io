@@ -1,32 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Flint Axl - IT Student</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flint Axl | IT Student Portfolio</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
   <header>
     <div class="container">
-      <img src="assets/images/po.jpg" alt="My Photo" class="profile-img">
+      <img src="assets/images/po.jpg" alt="My Photo" class="profile-img" />
       <h1>Flint Axl</h1>
-      <p>IT Student | Web Developer | Tech Enthusiast</p>
+      <p>IT Student | Web Developer | Multimedia Artist</p>
     </div>
   </header>
 
   <nav>
     <ul>
-      <li><a href="#">Home</a></li>
+      <li><a href="#home">Home</a></li>
       <li><a href="#about">About Me</a></li>
       <li><a href="#skills">Skills</a></li>
-      <li><a href="#projects">Projects</a></li>
+      <li class="dropdown">
+        <a href="#projects">Projects</a>
+        <ul class="dropdown-menu">
+          <li><a href="#os-projects">OS</a></li>
+          <li><a href="#mma-projects">Multimedia Arts</a></li>
+        </ul>
+      </li>
     </ul>
   </nav>
 
+  <section id="home" class="container">
+    <h2>Welcome to My Portfolio</h2>
+    <p>Explore my projects and experiences as an IT student.</p>
+  </section>
+
   <section id="about" class="container">
     <h2>About Me</h2>
-    <p>I’m a passionate Information Technology student eager to build and contribute to web applications. I love learning new programming languages and solving real-world problems with code.</p>
+    <p>I’m an IT student passionate about building digital experiences, solving real-world problems, and exploring multimedia arts and system design.</p>
   </section>
 
   <section id="skills" class="container">
@@ -36,24 +47,40 @@
       <li>JavaScript</li>
       <li>Python</li>
       <li>MySQL</li>
-      <li>PHP (Basic)</li>
+      <li>UI/UX Design</li>
     </ul>
   </section>
 
   <section id="projects" class="container">
-    <h2>Sample Projects</h2>
-    <div class="project">
-      <h3>Simple Portfolio Website</h3>
-      <p>A static website using HTML, CSS, and GitHub Pages.</p>
+    <h2>Projects</h2>
+
+    <div id="os-projects" class="project-category">
+      <h3>Operating System Projects</h3>
+      <div class="project">
+        <h4>Mini Shell</h4>
+        <p>A basic command-line shell built in C with process handling.</p>
+      </div>
+      <div class="project">
+        <h4>Disk Scheduling Visualizer</h4>
+        <p>Visualization of disk scheduling algorithms using JavaScript.</p>
+      </div>
     </div>
-    <div class="project">
-      <h3>Student Record System</h3>
-      <p>A basic CRUD system using PHP and MySQL.</p>
+
+    <div id="mma-projects" class="project-category">
+      <h3>Multimedia Arts Projects</h3>
+      <div class="project">
+        <h4>Poster Design</h4>
+        <p>Digital poster made with Adobe Photoshop for a school campaign.</p>
+      </div>
+      <div class="project">
+        <h4>Motion Graphics</h4>
+        <p>Short animated intro using Adobe After Effects.</p>
+      </div>
     </div>
   </section>
 
   <footer>
-    <p>&copy; 2025 Flint Axl | Follow me on <a href="#">GitHub</a></p>
+    <p>&copy; 2025 Flint Axl | All rights reserved</p>
   </footer>
 
   <script src="assets/js/script.js"></script>
