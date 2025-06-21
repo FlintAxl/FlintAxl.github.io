@@ -70,11 +70,6 @@ nav a:hover {
   display: block;
 }
 
-.container {
-  max-width: 900px;
-  margin: auto;
-  padding: 20px;
-}
 
 .container p {
   margin-bottom: 15px;
