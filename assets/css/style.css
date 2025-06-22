@@ -70,14 +70,15 @@ nav a:hover {
   display: block;
 }
 
-
-.container p {
-  margin-bottom: 15px;
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
 }
 
-.container h2 {
-  margin-top: 40px;
-  margin-bottom: 15px;
+h2 {
+  margin-bottom: 10px;
+  color: #0a3d62;
 }
 
 .skills {
@@ -114,6 +115,3 @@ footer {
   padding: 20px;
   margin-top: 40px;
 }
-
-
-
