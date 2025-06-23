@@ -306,3 +306,84 @@ body.space-theme {
   height: 100%;
   border: none;
 }
+
+/* Para sa planet conversion design*/
+
+#planetAgeForm {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+
+#planetAgeForm input,
+#planetAgeForm button {
+  padding: 10px 15px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+}
+
+#planetAgeForm input {
+  flex: 1;
+  min-width: 200px;
+}
+
+#planetAgeForm button {
+  background-color: #00ffff;
+  color: #000;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+#planetAgeForm button:hover {
+  background-color: #1e90ff;
+}
+
+.planet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.planet-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #0ff;
+  border-radius: 10px;
+  padding: 15px;
+  backdrop-filter: blur(4px);
+  color: #d1d9e6;
+  box-shadow: 0 0 10px rgba(0,255,255,0.1);
+}
+
+.planet-card h3 {
+  color: #00ffff;
+  margin-bottom: 10px;
+}
+
+/*planet picture design*/
+
+.planet-card {
+  padding: 20px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid #0ff;
+  border-radius: 12px;
+  text-align: center;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 15px rgba(0,255,255,0.2);
+  transition: transform 0.3s ease;
+}
+
+.planet-card:hover {
+  transform: scale(1.03);
+}
+
+.planet-card img.planet-image {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
