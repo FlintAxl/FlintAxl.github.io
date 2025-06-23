@@ -4,16 +4,48 @@
   <meta charset="UTF-8">
   <title>Solar System Animation</title>
   <link rel="stylesheet" href="../../assets/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="space-theme">
+  <div class="space-bg"></div>
+
   <header class="container">
-    <h1>🌌 Solar System Animation</h1>
-    <p><a href="../multimedia.html">← Back to Multimedia</a></p>
+    <h1 class="glow-title">🌌 Solar System Animation</h1>
+    <p><a href="../multimedia.html" class="back-link">← Back to Multimedia</a></p>
   </header>
 
+  <section class="container intro">
+    <p>This page showcases my 3D solar system animation built in Blender with Python scripting. Using automation, I simulated planetary orbits, rotation, and real scale with cosmic accuracy. Below are the supporting projects that contributed to this animation.</p>
+  </section>
+
   <section class="container">
-    <p>This page showcases my 3D solar system animation created in Blender with Python scripting. I used automation to simulate orbit, planet scaling, and rotation.</p>
-    <!-- You can embed a video or Blender screenshot here -->
+    <h2 class="glow-subtitle">🚀 Space Projects</h2>
+
+    <div class="project-grid">
+      <div class="project-item">
+        <p class="project-label">🌍 Planet Orbit Simulation</p>
+        <div class="video-box">
+          <iframe src="https://www.youtube.com/embed/frX1NX27X9k" title="Orbit Simulation" allowfullscreen></iframe>
+        </div>
+        <p>This simulation uses Python inside Blender to animate realistic planetary orbits, factoring distance and time into elliptical paths.</p>
+      </div>
+
+      <div class="project-item">
+        <p class="project-label">☀️ Sunlight & Shadows</p>
+        <div class="video-box">
+          <iframe src="https://www.youtube.com/embed/frX1NX27X9k" title="Sunlight Simulation" allowfullscreen></iframe>
+        </div>
+        <p>Animated lighting to simulate sunlight hitting rotating planets. Includes shadows and dynamic lighting for realism in Blender scenes.</p>
+      </div>
+
+      <div class="project-item">
+        <p class="project-label">📏 Real-Scale Planet Sizes</p>
+        <div class="video-box">
+          <iframe src="https://www.youtube.com/embed/frX1NX27X9k" title="Scaling Demo" allowfullscreen></iframe>
+        </div>
+        <p>This project calculates scale based on real planetary diameters and applies modifiers to maintain proportions in the animation.</p>
+      </div>
+    </div>
   </section>
 </body>
 </html>
