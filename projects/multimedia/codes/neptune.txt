@@ -1,0 +1,74 @@
+import bpy
+import math
+
+# Clear all objects
+bpy.ops.object.select_all(action='SELECT')
+bpy.ops.object.delete(use_global=False)
+
+# Create Neptune sphere
+bpy.ops.mesh.primitive_uv_sphere_add(radius=2.5, location=(0, 0, 0))
+neptune = bpy.context.object
+neptune.name = "Neptune"
+bpy.ops.object.shade_smooth()
+
+# Add Subdivision Surface Modifier
+subsurf = neptune.modifiers.new(name="Subdivision", type='SUBSURF')
+subsurf.levels = 2
+subsurf.render_levels = 3
+
+# Create Neptune material
+neptune_mat = bpy.data.materials.new(name="NeptuneMaterial")
+neptune_mat.use_nodes = True
+nodes = neptune_mat.node_tree.nodes
+links = neptune_mat.node_tree.links
+
+# Clear default nodes
+nodes.clear()
+
+# Add shader nodes
+output_node = nodes.new(type='ShaderNodeOutputMaterial')
+bsdf_node = nodes.new(type='ShaderNodeBsdfPrincipled')
+tex_image = nodes.new(type='ShaderNodeTexImage')
+tex_coord = nodes.new(type='ShaderNodeTexCoord')
+mapping = nodes.new(type='ShaderNodeMapping')
+
+# Load Neptune texture (replace with actual path)
+img_path = r"C:\Users\THINKPAD PC\Downloads\2k_neptune.jpg"  # ⬅️ Replace this with your Neptune texture path
+tex_image.image = bpy.data.images.load(img_path)
+
+# Connect nodes
+links.new(tex_coord.outputs['Generated'], mapping.inputs['Vector'])
+links.new(mapping.outputs['Vector'], tex_image.inputs['Vector'])
+links.new(tex_image.outputs['Color'], bsdf_node.inputs['Base Color'])
+links.new(bsdf_node.outputs['BSDF'], output_node.inputs['Surface'])
+
+# Assign material
+neptune.data.materials.append(neptune_mat)
+
+# Add lighting
+bpy.ops.object.light_add(type='SUN', location=(10, 10, 10))
+light = bpy.context.object
+light.data.energy = 2
+
+# Add camera
+bpy.ops.object.camera_add(location=(8, -8, 5))
+camera = bpy.context.object
+camera.rotation_euler = (math.radians(65), 0, math.radians(45))
+bpy.context.scene.camera = camera
+
+# Animate Neptune rotation
+neptune.rotation_euler = (0, 0, 0)
+neptune.keyframe_insert(data_path="rotation_euler", frame=1)
+neptune.rotation_euler = (0, 0, math.radians(360))
+neptune.keyframe_insert(data_path="rotation_euler", frame=300)
+
+# Make rotation smooth and linear
+if neptune.animation_data and neptune.animation_data.action:
+    for fcurve in neptune.animation_data.action.fcurves:
+        for keyframe in fcurve.keyframe_points:
+            keyframe.interpolation = 'LINEAR'
+
+# Set animation settings
+bpy.context.scene.frame_start = 1
+bpy.context.scene.frame_end = 300
+bpy.context.scene.render.fps = 24

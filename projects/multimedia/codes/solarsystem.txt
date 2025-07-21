@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Solar System Animation</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+</head>
+<body class="space-theme">
+  <div class="space-bg"></div>
+
+  <header class="container">
+    <h1 class="glow-title">🌌 Solar System Animation</h1>
+    <p><a href="../multimedia.html" class="back-link">← Back to Multimedia</a></p>
+  </header>
+
+  <section class="container">
+    <p class="project-label">🎥 Full Solar System Animation</p>
+    <div class="video-box">
+      <iframe src="https://www.youtube.com/embed/L8kpN2jvzqE?autoplay=1&mute=1&loop=1&playlist=L8kpN2jvzqE"
+        title="Rotoscoping Demo"
+        allow="autoplay; encrypted-media"
+        allowfullscreen></iframe>
+    </div>
+
+    <p class="project-description">
+      This animation features a full simulation of the solar system using Blender and Python. It includes orbital paths, real-time rotation, and realistic scaling of all planetary bodies. It was developed as the core visualization for this portfolio.
+    </p>
+  </section>
+
+  <section class="container" id="age-converter">
+
+    <!-- Toggle Button and Code Block -->
+    <button id="showCodeBtn" style="margin-bottom:10px; padding:8px 12px; cursor:pointer;">
+      📋 Show Planet Specs Code
+    </button>
+
+    <pre id="codeBlock" style="
+      display:none;
+      background:#222;
+      color:#0f0;
+      padding:10px;
+      border-radius:8px;
+      overflow-x:auto;
+      white-space:pre-wrap;
+    ">
+import bpy
+import math
+import os
+import mathutils
+from mathutils import Matrix
+
+
+# --------------------------------------------------
+# Helper: Create or get a collection
+# --------------------------------------------------
+def get_collection(name):
+    if name in bpy.data.collections:
+        return bpy.data.collections[name]
+    coll = bpy.data.collections.new(name)
+    bpy.context.scene.collection.children.link(coll)
+    return coll
+
+# --------------------------------------------------
+# Clear existing solar system
+# --------------------------------------------------
+def clear_scene():
+    bpy.ops.object.select_all(action='SELECT')
+    bpy.ops.object.delete(use_global=False)
+    for coll in list(bpy.data.collections):
+        if coll.name.startswith("SolarSystem"):
+            bpy.data.collections.remove(coll)
+
+# --------------------------------------------------
+# Set space background image and enable in preview
+# --------------------------------------------------
+def set_space_background(image_path):
+    world = bpy.context.scene.world
+    if world is None:
+        world = bpy.data.worlds.new("World")
+        bpy.context.scene.world = world
+
+    world.use_nodes = True
+    nodes = world.node_tree.nodes
+    links = world.node_tree.links
+    nodes.clear()
+
+    tex_node = nodes.new(type='ShaderNodeTexEnvironment')
+    bg_node = nodes.new(type='ShaderNodeBackground')
+    output_node = nodes.new(type='ShaderNodeOutputWorld')
+
+    try:
+        tex_node.image = bpy.data.images.load(image_path)
+    except Exception as e:
+        print(f"Failed to load background image: {image_path}: {e}")
+        return
+
+    links.new(tex_node.outputs['Color'], bg_node.inputs['Color'])
+    links.new(bg_node.outputs['Background'], output_node.inputs['Surface'])
+
+    for area in bpy.context.screen.areas:
+        if area.type == 'VIEW_3D':
+            for space in area.spaces:
+                if space.type == 'VIEW_3D':
+                    space.shading.use_scene_world = True
+
+# --------------------------------------------------
+# Create Sun with texture emission
+# --------------------------------------------------
+def create_sun(collection, texture_path):
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=64, ring_count=32, radius=1, location=(0,0,0))
+    sun = bpy.context.active_object
+    sun.name = "Sun"
+
+    mat = bpy.data.materials.new(name="SunMaterial")
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+    nodes.clear()
+
+    tex_node = nodes.new('ShaderNodeTexImage')
+    try:
+        tex_node.image = bpy.data.images.load(texture_path)
+    except Exception as e:
+        print(f"Failed to load sun texture: {texture_path}: {e}")
+
+    emission = nodes.new('ShaderNodeEmission')
+    links.new(tex_node.outputs['Color'], emission.inputs['Color'])
+    emission.inputs['Strength'].default_value = 5.0
+
+    output = nodes.new('ShaderNodeOutputMaterial')
+    links.new(emission.outputs['Emission'], output.inputs['Surface'])
+
+    sun.data.materials.append(mat)
+
+    bpy.ops.object.light_add(type='POINT', radius=1, location=(0,0,0))
+    light = bpy.context.active_object
+    light.name = "SunLight"
+    light.data.energy = 5000
+    light.data.shadow_soft_size = 0.5
+
+    collection.objects.link(sun)
+    collection.objects.link(light)
+
+# --------------------------------------------------
+# Create orbit material (white emission)
+# --------------------------------------------------
+def create_orbit_material():
+    mat = bpy.data.materials.new(name="OrbitWhiteMaterial")
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+    nodes.clear()
+
+    emission = nodes.new('ShaderNodeEmission')
+    emission.inputs['Color'].default_value = (1, 1, 1, 1)  # Pure white
+    emission.inputs['Strength'].default_value = 3.0  # Increased strength for better visibility
+
+    output = nodes.new('ShaderNodeOutputMaterial')
+    links.new(emission.outputs['Emission'], output.inputs['Surface'])
+
+    # Enable backface culling and make material visible in viewport
+    mat.use_backface_culling = True
+    mat.blend_method = 'BLEND'
+    mat.shadow_method = 'NONE'
+    
+    return mat
+
+# --------------------------------------------------
+# Create a planet with animation and label
+# --------------------------------------------------
+def create_planet(collection, name, radius, texture_path, distance, axial_tilt, self_days, orbit_days):
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=radius, location=(distance,0,0))
+    planet = bpy.context.active_object
+    planet.name = name
+    planet.rotation_euler = (math.radians(axial_tilt), 0, 0)
+
+    mat = bpy.data.materials.new(name=f"{name}Mat")
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+    nodes.clear()
+
+    tex = nodes.new('ShaderNodeTexImage')
+    try:
+        tex.image = bpy.data.images.load(texture_path)
+    except:
+        bsdf = nodes.new('ShaderNodeBsdfPrincipled')
+        bsdf.inputs['Base Color'].default_value = (0.8,0.8,0.8,1)
+        out = nodes.new('ShaderNodeOutputMaterial')
+        links.new(bsdf.outputs['BSDF'], out.inputs['Surface'])
+        planet.data.materials.append(mat)
+        collection.objects.link(planet)
+        return
+
+    normal = nodes.new('ShaderNodeNormalMap')
+    bsdf = nodes.new('ShaderNodeBsdfPrincipled')
+    bsdf.inputs['Roughness'].default_value = 0.9
+    out = nodes.new('ShaderNodeOutputMaterial')
+
+    links.new(tex.outputs['Color'], bsdf.inputs['Base Color'])
+    links.new(normal.outputs['Normal'], bsdf.inputs['Normal'])
+    links.new(bsdf.outputs['BSDF'], out.inputs['Surface'])
+
+    planet.data.materials.append(mat)
+    
+    
+
+    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(0,0,0))
+    orbit_empty = bpy.context.active_object
+    orbit_empty.name = f"{name}_Orbit"
+    planet.parent = orbit_empty
+
+    orbit_empty.rotation_mode = 'XYZ'
+    orbit_empty.keyframe_insert(data_path='rotation_euler', frame=1)
+    orbit_empty.rotation_euler.z = math.radians(360)
+    orbit_empty.keyframe_insert(data_path='rotation_euler', frame=orbit_days)
+
+    for fc in orbit_empty.animation_data.action.fcurves:
+        fc.extrapolation = 'LINEAR'
+        for kp in fc.keyframe_points:
+            kp.interpolation = 'LINEAR'
+
+    planet.keyframe_insert(data_path='rotation_euler', frame=1)
+    planet.rotation_euler.z += math.radians(360)
+    planet.keyframe_insert(data_path='rotation_euler', frame=max(1,int(self_days)))
+
+    for fc in planet.animation_data.action.fcurves:
+        fc.extrapolation = 'LINEAR'
+        for kp in fc.keyframe_points:
+            kp.interpolation = 'LINEAR'
+
+    bpy.ops.curve.primitive_bezier_circle_add(radius=distance, location=(0,0,0))
+    path = bpy.context.active_object
+    path.name = f"{name}_OrbitPath"
+    path.data.bevel_depth = 0.002  # Slightly thicker orbit line
+    path.data.resolution_u = 128  # Higher resolution for smoother circle
+    path.display_type = 'WIRE'
+
+    
+    # Apply enhanced white material to orbit path
+    orbit_mat = bpy.data.materials.get("OrbitWhiteMaterial") or create_orbit_material()
+    path.data.materials.append(orbit_mat)
+
+    bpy.ops.object.text_add(location=(distance, 0, radius + 0.5))
+    label = bpy.context.active_object
+    label.name = f"{name}_Label"
+    label.data.body = name
+    label.data.size = 1.5
+    label.data.align_x = 'CENTER'
+    label.data.extrude = 0.05
+    label.data.bevel_depth = 0.01
+    label.rotation_euler = (math.radians(90), 0, 0)
+    label.parent = orbit_empty
+
+    constraint = label.constraints.new(type='TRACK_TO')
+    constraint.target = bpy.context.scene.camera
+    constraint.track_axis = 'TRACK_Z'
+    constraint.up_axis = 'UP_Y'
+
+    text_mat = bpy.data.materials.new(name=f"{name}_LabelMat")
+    text_mat.use_nodes = True
+    nodes = text_mat.node_tree.nodes
+    links = text_mat.node_tree.links
+    nodes.clear()
+
+    emission = nodes.new('ShaderNodeEmission')
+    emission.inputs['Color'].default_value = (1, 1, 1, 1)
+    emission.inputs['Strength'].default_value = 10
+
+    output = nodes.new('ShaderNodeOutputMaterial')
+    links.new(emission.outputs['Emission'], output.inputs['Surface'])
+
+    label.data.materials.append(text_mat)
+
+    for obj in (orbit_empty, planet, path, label):
+        collection.objects.link(obj)
+        
+        
+            # Add Saturn's ring
+    if name == "Saturn":
+        bpy.ops.mesh.primitive_torus_add(location=(distance, 0, 0), major_radius=radius + 0.8, minor_radius=0.2, major_segments=48, minor_segments=12)
+        ring = bpy.context.active_object
+        ring.name = "SaturnRing"
+        ring.rotation_euler = (math.radians(180), 0, 0)
+        ring.parent = orbit_empty
+
+        # Ring material
+        ring_mat = bpy.data.materials.new(name="SaturnRingMat")
+        ring_mat.use_nodes = True
+        nodes = ring_mat.node_tree.nodes
+        links = ring_mat.node_tree.links
+        nodes.clear()
+
+        emission = nodes.new('ShaderNodeEmission')
+        emission.inputs['Color'].default_value = (0.8, 0.7, 0.5, 1)
+        emission.inputs['Strength'].default_value = 1.0
+
+        output = nodes.new('ShaderNodeOutputMaterial')
+        links.new(emission.outputs['Emission'], output.inputs['Surface'])
+
+        ring.data.materials.append(ring_mat)
+        collection.objects.link(ring)
+
+
+
+# --------------------------------------------------
+# Main execution
+# --------------------------------------------------
+clear_scene()
+solar_coll = get_collection("SolarSystem")
+
+create_sun(solar_coll, r"C:/Users/THINKPAD PC/Downloads/2k_sun.jpg")
+
+# --------------------------------------------------
+# Create label for the Sun
+# --------------------------------------------------
+bpy.ops.object.text_add(location=(0, 0, 1.5))  # Slightly above the Sun
+label = bpy.context.active_object
+label.name = "Sun_Label"
+label.data.body = "Sun"
+label.data.size = 1.5
+label.data.align_x = 'CENTER'
+label.data.extrude = 0.05
+label.data.bevel_depth = 0.01
+label.rotation_euler = (math.radians(90), 0, 0)
+
+# Add track-to constraint so it always faces the camera
+constraint = label.constraints.new(type='TRACK_TO')
+constraint.target = bpy.context.scene.camera
+constraint.track_axis = 'TRACK_Z'
+constraint.up_axis = 'UP_Y'
+
+# Create glowing material
+text_mat = bpy.data.materials.new(name="Sun_LabelMat")
+text_mat.use_nodes = True
+nodes = text_mat.node_tree.nodes
+links = text_mat.node_tree.links
+nodes.clear()
+
+emission = nodes.new('ShaderNodeEmission')
+emission.inputs['Color'].default_value = (1, 1, 0.2, 1)  # Yellowish glow
+emission.inputs['Strength'].default_value = 10
+
+output = nodes.new('ShaderNodeOutputMaterial')
+links.new(emission.outputs['Emission'], output.inputs['Surface'])
+
+label.data.materials.append(text_mat)
+# Link label to the SolarSystem collection
+solar_coll.objects.link(label)
+
+# Prevent duplicate linking error
+if label.name in bpy.context.scene.collection.objects:
+    bpy.context.scene.collection.objects.unlink(label)
+
+
+
+planet_specs = [
+    ('Mercury',0.5 ,r"C:/Users/THINKPAD PC/Downloads/2k_mercury.jpg",5,0.01,58.6,176),
+    ('Venus',  0.95,r"C:/Users/THINKPAD PC/Downloads/2k_venus_surface.jpg",8,177.4,243,225),
+    ('Earth',  1.0 ,r"C:/Users/THINKPAD PC/Downloads/2k_earth_daymap.jpg",11,23.5,1,365),
+    ('Mars',   0.53,r"C:/Users/THINKPAD PC/Downloads/2k_mars.jpg",14,25.2,1.03,687),
+    ('Jupiter',2.5 ,r"C:/Users/THINKPAD PC/Downloads/2k_jupiter.jpg",19,3.13,0.41,520),
+    ('Saturn', 2.0 ,r"C:/Users/THINKPAD PC/Downloads/2k_saturn.jpg",25,26.7,0.44,800),
+    ('Uranus', 1.0 ,r"C:/Users/THINKPAD PC/Downloads/2k_uranus.jpg",30,97.77,0.72,600),
+    ('Neptune',0.9 ,r"C:/Users/THINKPAD PC/Downloads/2k_neptune.jpg",36,28.3,0.67,900),
+    ('Pluto', 0.3, r"C:/Users/THINKPAD PC/Downloads/pluto.jfif", 42, 119.6, 2.39, 800),
+]
+
+for spec in planet_specs:
+    name, radius, texture_path, distance, axial_tilt, self_days, orbit_days = spec
+    create_planet(solar_coll, name, radius, texture_path, distance, axial_tilt, self_days, orbit_days)
+
+# Add camera far enough to see the whole solar system
+bpy.ops.object.camera_add(location=(0, -80, 30))
+camera = bpy.context.active_object
+
+# Point camera at the Sun (origin)
+direction = mathutils.Vector((0, 0, 0)) - camera.location
+rot_quat = direction.to_track_quat('-Z', 'Y')
+camera.rotation_euler = rot_quat.to_euler()
+
+# Widen the field of view
+camera.data.lens = 23  # Smaller value = wider view (default is ~50mm)
+
+# Set the camera as the active one
+bpy.context.scene.camera = camera
+
+bpy.context.scene.camera = camera
+
+bpy.context.scene.frame_end = max(p[6] for p in planet_specs)
+
+set_space_background(r"C:\Users\THINKPAD PC\Downloads\beautiful-view-stars-night-sky.jpg")
+    </pre>
+
+    <h2 class="glow-subtitle">🪐 Earth Age to Planet Age Calculator</h2>
+    <form id="planetAgeForm">
+      <input type="number" id="earthAgeInput" placeholder="Enter your Earth age" required />
+      <button type="submit">Calculate</button>
+    </form>
+    <p id="ageNote" style="color: #ffcccc; margin-top: 10px;">Enter your Earth age to see how old you'd be on other planets.</p>
+
+    <div class="planet-grid" id="planetResults"></div>
+  </section>
+
+  <section class="container">
+    <h2 class="glow-subtitle">Planets</h2>
+    <div class="project-grid">
+
+      <!-- Mars -->
+<div class="project-item">
+  <p class="project-label">MARS</p>
+  <div class="video-box">
+    <iframe src="https://www.youtube.com/embed/Or6rs11unHw?autoplay=1&mute=1&loop=1&playlist=Or6rs11unHw"
+      title="Orbit Simulation"
+      allow="autoplay; encrypted-media"
+      allowfullscreen></iframe>
+  </div>
+  <p>Mars is the fourth planet from the Sun and is often called the "Red Planet"...</p>
+
+</div>
+
+
+      <!-- Jupiter -->
+      <div class="project-item">
+        <p class="project-label">JUPITER</p>
+        <div class="video-box">
+          <iframe src="https://www.youtube.com/embed/9fAKIw0iilk?autoplay=1&mute=1&loop=1&playlist=9fAKIw0iilk"
+            title="Sunlight Simulation"
+            allow="autoplay; encrypted-media"
+            allowfullscreen></iframe>
+        </div>
+        <p>Jupiter is the fifth planet from the Sun...</p>
+      </div>
+
+      <!-- Saturn -->
+      <div class="project-item">
+        <p class="project-label">SATURN</p>
+        <div class="video-box">
+          <iframe src="https://www.youtube.com/embed/4oTjWZzNXAQ?autoplay=1&mute=1&loop=1&playlist=4oTjWZzNXAQ"
+            title="Scaling Demo"
+            allow="autoplay; encrypted-media"
+            allowfullscreen></iframe>
+        </div>
+        <p>Saturn is the sixth planet from the Sun...</p>
+      </div>
+
+      <!-- Earth -->
+      <div class="project-item">
+        <p class="project-label">EARTH</p>
+        <div class="video-box">
+          <iframe src="https://www.youtube.com/embed/GaX5GGMzkms?autoplay=1&mute=1&loop=1&playlist=GaX5GGMzkms"
+            title="Scaling Demo"
+            allow="autoplay; encrypted-media"
+            allowfullscreen></iframe>
+        </div>
+        <p>Earth is a rocky, terrestrial planet...</p>
+      </div>
+
+      <!-- Mercury -->
+      <div class="project-item">
+        <p class="project-label">MERCURY</p>
+        <div class="video-box">
+          <iframe src="https://www.youtube.com/embed/702XmMShuXY?autoplay=1&mute=1&loop=1&playlist=702XmMShuXY"
+            title="Scaling Demo"
+            allow="autoplay; encrypted-media"
+            allowfullscreen></iframe>
+        </div>
+        <p>Mercury is the smallest planet in our solar system...</p>
+      </div>
+
+      <!-- Neptune -->
+      <div class="project-item">
+        <p class="project-label">NEPTUNE</p>
+        <div class="video-box">
+          <iframe src="https://www.youtube.com/embed/P4RDVmTuVJY?autoplay=1&mute=1&loop=1&playlist=P4RDVmTuVJY"
+            title="Scaling Demo"
+            allow="autoplay; encrypted-media"
+            allowfullscreen></iframe>
+        </div>
+        <p>Neptune is the eighth and farthest planet from the Sun...</p>
+      </div>
+
+      <!-- Pluto -->
+      <div class="project-item">
+        <p class="project-label">PLUTO</p>
+        <div class="video-box">
+          <iframe src="https://www.youtube.com/embed/fLwMFUrn_LA?autoplay=1&mute=1&loop=1&playlist=fLwMFUrn_LA"
+            title="Scaling Demo"
+            allow="autoplay; encrypted-media"
+            allowfullscreen></iframe>
+        </div>
+        <p>Pluto is a dwarf planet located in the Kuiper Belt...</p>
+      </div>
+
+      <!-- Sun -->
+      <div class="project-item">
+        <p class="project-label">SUN</p>
+        <div class="video-box">
+          <iframe src="https://www.youtube.com/embed/XzMNVRUkkgI?autoplay=1&mute=1&loop=1&playlist=XzMNVRUkkgI"
+            title="Scaling Demo"
+            allow="autoplay; encrypted-media"
+            allowfullscreen></iframe>
+        </div>
+        <p>The Sun is the star at the center of the Solar System...</p>
+      </div>
+
+      <!-- Uranus -->
+      <div class="project-item">
+        <p class="project-label">URANUS</p>
+        <div class="video-box">
+          <iframe src="https://www.youtube.com/embed/HkZEPPRoVGM?autoplay=1&mute=1&loop=1&playlist=HkZEPPRoVGM"
+            title="Scaling Demo"
+            allow="autoplay; encrypted-media"
+            allowfullscreen></iframe>
+        </div>
+        <p>Uranus is the seventh planet from the Sun...</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Your custom script -->
+  <script src="../../assets/js/script.js"></script>
+
+  <!-- Show/Hide Code Script -->
+  <script>
+    const showBtn = document.getElementById('showCodeBtn');
+    const codeBlock = document.getElementById('codeBlock');
+
+    showBtn.addEventListener('click', () => {
+      if (codeBlock.style.display === 'none') {
+        codeBlock.style.display = 'block';
+        showBtn.textContent = '🙈 Hide Planet Specs Code';
+      } else {
+        codeBlock.style.display = 'none';
+        showBtn.textContent = '📋 Show Planet Specs Code';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+import bpy
+import math
+
+# Clear all existing objects
+bpy.ops.object.select_all(action='SELECT')
+bpy.ops.object.delete(use_global=False)
+
+# Create a UV Sphere for Mercury
+bpy.ops.mesh.primitive_uv_sphere_add(radius=1.5, location=(0, 0, 0))
+mercury = bpy.context.object
+mercury.name = "Mercury"
+
+# Shade smooth
+bpy.ops.object.shade_smooth()
+
+# Add Subdivision Surface Modifier
+subsurf = mercury.modifiers.new(name="Subdivision", type='SUBSURF')
+subsurf.levels = 2
+subsurf.render_levels = 3
+
+# Create a new material
+mercury_mat = bpy.data.materials.new(name="MercuryMaterial")
+mercury_mat.use_nodes = True
+nodes = mercury_mat.node_tree.nodes
+links = mercury_mat.node_tree.links
+
+# Clear existing nodes
+nodes.clear()
+
+# Add necessary nodes
+output_node = nodes.new(type='ShaderNodeOutputMaterial')
+bsdf_node = nodes.new(type='ShaderNodeBsdfPrincipled')
+tex_image = nodes.new(type='ShaderNodeTexImage')
+tex_coord = nodes.new(type='ShaderNodeTexCoord')
+mapping = nodes.new(type='ShaderNodeMapping')
+
+# Load Mercury texture image (update this path to your local texture)
+img_path = r"C:\Users\THINKPAD PC\Downloads\2k_mercury.jpg"  # <-- Replace this with your actual texture path
+tex_image.image = bpy.data.images.load(img_path)
+
+# Connect nodes
+links.new(tex_coord.outputs['Generated'], mapping.inputs['Vector'])
+links.new(mapping.outputs['Vector'], tex_image.inputs['Vector'])
+links.new(tex_image.outputs['Color'], bsdf_node.inputs['Base Color'])
+links.new(bsdf_node.outputs['BSDF'], output_node.inputs['Surface'])
+
+# Assign material
+mercury.data.materials.append(mercury_mat)
+
+# Add a sun light
+bpy.ops.object.light_add(type='SUN', location=(6, 6, 4))
+light = bpy.context.object
+light.data.energy = 3
+
+# Add camera
+bpy.ops.object.camera_add(location=(5, -5, 3))
+camera = bpy.context.object
+camera.rotation_euler = (math.radians(65), 0, math.radians(45))
+bpy.context.scene.camera = camera
+
+# Animate Mercury rotation
+mercury.rotation_euler = (0, 0, 0)
+mercury.keyframe_insert(data_path="rotation_euler", frame=1)
+mercury.rotation_euler = (0, 0, math.radians(360))
+mercury.keyframe_insert(data_path="rotation_euler", frame=250)
+
+# Set animation settings
+bpy.context.scene.frame_start = 1
+bpy.context.scene.frame_end = 250
+bpy.context.scene.render.fps = 24

@@ -64,3 +64,55 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 });
+
+
+//show source code
+// document.querySelectorAll('.showCodeBtn').forEach((button) => {
+//       button.addEventListener('click', () => {
+//         const codeBlock = button.nextElementSibling;
+//         if (codeBlock.style.display === 'none' || codeBlock.style.display === '') {
+//           codeBlock.style.display = 'block';
+//           button.textContent = 'Hide Code';
+//         } else {
+//           codeBlock.style.display = 'none';
+//           button.textContent = 'Show Code';
+//         }
+//       });
+//     });
+
+
+    document.addEventListener("DOMContentLoaded", () => {
+  const buttons = document.querySelectorAll(".showCodeBtn");
+
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const codeBlock = btn.nextElementSibling;
+      const filePath = codeBlock.getAttribute("data-file");
+
+      // Toggle display
+      if (codeBlock.style.display === "none" || codeBlock.style.display === "") {
+        // If codeBlock is empty, fetch from file
+        if (!codeBlock.textContent.trim()) {
+          fetch(filePath)
+            .then((response) => response.text())
+            .then((data) => {
+              codeBlock.textContent = data;
+              codeBlock.style.display = "block";
+              btn.textContent = "🙈 Hide Code";
+            })
+            .catch((err) => {
+              codeBlock.textContent = "⚠️ Error loading code: " + err;
+              codeBlock.style.display = "block";
+            });
+        } else {
+          codeBlock.style.display = "block";
+          btn.textContent = "🙈 Hide Code";
+        }
+      } else {
+        codeBlock.style.display = "none";
+        btn.textContent = "📋 " + btn.textContent.replace("🙈 Hide Code", "Show Code");
+        btn.textContent = btn.textContent.includes("Show Code") ? btn.textContent : "📋 Show Code";
+      }
+    });
+  });
+});

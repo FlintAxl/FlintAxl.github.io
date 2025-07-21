@@ -1,0 +1,70 @@
+import bpy
+import math
+
+# Clear all existing objects
+bpy.ops.object.select_all(action='SELECT')
+bpy.ops.object.delete(use_global=False)
+
+# Create a UV Sphere for Jupiter
+bpy.ops.mesh.primitive_uv_sphere_add(radius=3.0, location=(0, 0, 0))
+jupiter = bpy.context.object
+jupiter.name = "Jupiter"
+
+# Shade smooth
+bpy.ops.object.shade_smooth()
+
+# Add Subdivision Surface Modifier for extra smoothness
+subsurf = jupiter.modifiers.new(name="Subdivision", type='SUBSURF')
+subsurf.levels = 2
+subsurf.render_levels = 3
+
+# Create a material for Jupiter
+jup_mat = bpy.data.materials.new(name="JupiterMaterial")
+jup_mat.use_nodes = True
+nodes = jup_mat.node_tree.nodes
+links = jup_mat.node_tree.links
+
+# Clear default nodes
+nodes.clear()
+
+# Add shader nodes
+output_node = nodes.new(type='ShaderNodeOutputMaterial')
+bsdf_node = nodes.new(type='ShaderNodeBsdfPrincipled')
+tex_image = nodes.new(type='ShaderNodeTexImage')
+tex_coord = nodes.new(type='ShaderNodeTexCoord')
+mapping = nodes.new(type='ShaderNodeMapping')
+
+# Load Jupiter texture (change path)
+img_path = r"C:\Users\THINKPAD PC\Downloads\2k_jupiter.jpg"  # 🔁 Replace with your local texture path
+tex_image.image = bpy.data.images.load(img_path)
+
+# Connect nodes
+links.new(tex_coord.outputs['Generated'], mapping.inputs['Vector'])
+links.new(mapping.outputs['Vector'], tex_image.inputs['Vector'])
+links.new(tex_image.outputs['Color'], bsdf_node.inputs['Base Color'])
+links.new(bsdf_node.outputs['BSDF'], output_node.inputs['Surface'])
+
+# Assign material to Jupiter
+jupiter.data.materials.append(jup_mat)
+
+# Add a sun light
+bpy.ops.object.light_add(type='SUN', location=(8, 8, 6))
+light = bpy.context.object
+light.data.energy = 3
+
+# Add a camera
+bpy.ops.object.camera_add(location=(10, -10, 6))
+camera = bpy.context.object
+camera.rotation_euler = (math.radians(65), 0, math.radians(45))
+bpy.context.scene.camera = camera
+
+# Animate Jupiter's rotation
+jupiter.rotation_euler = (0, 0, 0)
+jupiter.keyframe_insert(data_path="rotation_euler", frame=1)
+jupiter.rotation_euler = (0, 0, math.radians(360))
+jupiter.keyframe_insert(data_path="rotation_euler", frame=250)
+
+# Animation settings
+bpy.context.scene.frame_start = 1
+bpy.context.scene.frame_end = 250
+bpy.context.scene.render.fps = 24

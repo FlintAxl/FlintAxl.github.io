@@ -1,0 +1,159 @@
+import bpy
+import math
+
+# Clear all objects
+bpy.ops.object.select_all(action='SELECT')
+bpy.ops.object.delete(use_global=False)
+
+# Create Saturn sphere
+bpy.ops.mesh.primitive_uv_sphere_add(radius=2.5, location=(0, 0, 0))
+saturn = bpy.context.object
+saturn.name = "Saturn"
+bpy.ops.object.shade_smooth()
+
+# Add Subdivision Surface Modifier
+subsurf = saturn.modifiers.new(name="Subdivision", type='SUBSURF')
+subsurf.levels = 2
+subsurf.render_levels = 3
+
+# Create Saturn material
+saturn_mat = bpy.data.materials.new(name="SaturnMaterial")
+saturn_mat.use_nodes = True
+nodes = saturn_mat.node_tree.nodes
+links = saturn_mat.node_tree.links
+
+# Clear default nodes
+nodes.clear()
+
+# Add shader nodes
+output_node = nodes.new(type='ShaderNodeOutputMaterial')
+bsdf_node = nodes.new(type='ShaderNodeBsdfPrincipled')
+tex_image = nodes.new(type='ShaderNodeTexImage')
+tex_coord = nodes.new(type='ShaderNodeTexCoord')
+mapping = nodes.new(type='ShaderNodeMapping')
+
+# Load Saturn texture (change path)
+img_path = r"C:\Users\THINKPAD PC\Downloads\2k_saturn.jpg"  # ⬅️ Replace with your texture path
+tex_image.image = bpy.data.images.load(img_path)
+
+# Link texture nodes
+links.new(tex_coord.outputs['Generated'], mapping.inputs['Vector'])
+links.new(mapping.outputs['Vector'], tex_image.inputs['Vector'])
+links.new(tex_image.outputs['Color'], bsdf_node.inputs['Base Color'])
+links.new(bsdf_node.outputs['BSDF'], output_node.inputs['Surface'])
+
+# Assign material
+saturn.data.materials.append(saturn_mat)
+
+# -------------------------
+# Add Saturn's rings
+# -------------------------
+bpy.ops.mesh.primitive_torus_add(
+    major_radius=4.5,
+    minor_radius=0.1,
+    location=(0, 0, 0),
+    rotation=(0, math.radians(200), 0)  # Makes the ring vertical
+)
+
+rings = bpy.context.object
+rings.name = "SaturnRings"
+
+# Ring material
+ring_mat = bpy.data.materials.new(name="RingMaterial")
+ring_mat.use_nodes = True
+ring_nodes = ring_mat.node_tree.nodes
+ring_links = ring_mat.node_tree.links
+
+# Clear default nodes
+ring_nodes.clear()
+
+# Ring shader nodes
+ring_out = ring_nodes.new(type='ShaderNodeOutputMaterial')
+ring_bsdf = ring_nodes.new(type='ShaderNodeBsdfPrincipled')
+if 'Base Color' in ring_bsdf.inputs:
+    ring_bsdf.inputs['Base Color'].default_value = (0.8, 0.7, 0.5, 1)
+
+if 'Roughness' in ring_bsdf.inputs:
+    ring_bsdf.inputs['Roughness'].default_value = 0.8
+
+if 'Specular' in ring_bsdf.inputs:
+    ring_bsdf.inputs['Specular'].default_value = 0.1
+
+ring_links.new(ring_bsdf.outputs['BSDF'], ring_out.inputs['Surface'])
+
+# Assign ring material
+rings.data.materials.append(ring_mat)
+
+# -------------------------
+# Add lighting
+# -------------------------
+bpy.ops.object.light_add(type='SUN', location=(8, 8, 6))
+light = bpy.context.object
+light.data.energy = 3
+
+# Add camera
+bpy.ops.object.camera_add(location=(16, -16, 6))
+
+camera = bpy.context.object
+camera.data.lens = 35  # Smaller number = wider view (default is ~50)
+
+camera.rotation_euler = (math.radians(65), 0, math.radians(45))
+bpy.context.scene.camera = camera
+
+# -------------------------
+# Animate Saturn rotation
+# -------------------------
+saturn.rotation_euler = (0, 0, 0)
+saturn.keyframe_insert(data_path="rotation_euler", frame=1)
+saturn.rotation_euler = (0, 0, math.radians(360))
+saturn.keyframe_insert(data_path="rotation_euler", frame=250)
+
+# Make rotation linear for smooth looping
+if saturn.animation_data and saturn.animation_data.action:
+    for fcurve in saturn.animation_data.action.fcurves:
+        for kp in fcurve.keyframe_points:
+            kp.interpolation = 'LINEAR'
+
+# Frame settings
+bpy.context.scene.frame_start = 1
+bpy.context.scene.frame_end = 150
+bpy.context.scene.render.fps = 24
+
+
+# Add space background as environment texture
+bg_path = r"C:\Users\THINKPAD PC\Downloads\beautiful-view-stars-night-sky.jpg"
+
+# Set render engine (EEVEE or CYCLES)
+bpy.context.scene.render.engine = 'CYCLES'
+
+# Get or create world
+world = bpy.context.scene.world
+world.use_nodes = True
+wnodes = world.node_tree.nodes
+wlinks = world.node_tree.links
+
+# Clear existing world nodes
+wnodes.clear()
+
+# Add environment texture setup
+env_tex = wnodes.new(type='ShaderNodeTexEnvironment')
+bg_node = wnodes.new(type='ShaderNodeBackground')
+output_node = wnodes.new(type='ShaderNodeOutputWorld')
+
+# Load the image
+try:
+    env_tex.image = bpy.data.images.load(bg_path)
+except:
+    print("❌ Failed to load background image")
+
+# Connect the nodes
+wlinks.new(env_tex.outputs['Color'], bg_node.inputs['Color'])
+wlinks.new(bg_node.outputs['Background'], output_node.inputs['Surface'])
+
+# Optional: Enable world background in viewport
+for area in bpy.context.screen.areas:
+    if area.type == 'VIEW_3D':
+        for space in area.spaces:
+            if space.type == 'VIEW_3D':
+                space.shading.use_scene_world = True
+                space.shading.type = 'RENDERED'
